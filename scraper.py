@@ -85,8 +85,8 @@ def convert_mth_strings ( mth_string ):
 
 #### VARIABLES 1.0
 
-entity_id = "E2632_BDC_gov"
-url = "https://www.broadland.gov.uk/info/200197/spending_and_transparency/339/council_spending_over_250"
+entity_id = "E2533_LCC_gov"
+url = "https://www.lincoln.gov.uk/your-council/data-transparency/expenditure-over-500/"
 errors = 0
 data = []
 
@@ -98,25 +98,33 @@ soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
-links = soup.find('div', 'editor').find_all('a', href=True)
+links = soup.find('div', "cls tabbed-zone-body").find_all('span', 'cls')
 for link in links:
-    if 'http' not in link['href']:
-        year_url = 'https://www.broadland.gov.uk' + link['href']
+    if 'http' not in link.find('a')['href']:
+        url = 'https://www.lincoln.gov.uk' + link.find('a')['href']
     else:
-        year_url = link['href']
-    year_html = urllib2.urlopen(year_url)
-    year_soup = BeautifulSoup(year_html, 'lxml')
-    blocks = year_soup.find_all('span', 'download-listing__file-tag download-listing__file-tag--type')
-    for block in blocks:
-        if 'CSV' in block.text:
-            url = block.find_next('a')['href']
-            if 'http' not in url:
-                url = 'https://www.broadland.gov.uk' + url
-            else:
-                url = url
-            file_name = block.find_next('a')['aria-label']
-            csvMth = file_name.split()[-2][:3]
-            csvYr = file_name.split()[-1]
+        url = link.find('a')['href']
+    if '.xlsx' in url or '.xls' in url or '.csv' in url:
+        file_name = link.find('span').text.strip().replace('- transparency data', '').replace('Transparency data -', '').replace('Mth 10', '').strip()
+        csvYr = file_name.split()[1]
+        if '20' not in csvYr:
+            csvYr = '20'+csvYr
+        csvMth = file_name[:3]
+        csvMth = convert_mth_strings(csvMth.upper())
+        data.append([csvYr, csvMth, url])
+blocks = soup.find_all('ul', "oBoxList")
+for block in blocks:
+    links = block.find_all('a', href = True)
+    for link in links:
+        if 'http' not in link['href']:
+            url = 'https://www.lincoln.gov.uk' + link['href']
+        else:
+            url = link['href']
+        file_name = link.text.strip()
+        if 'Spend' in file_name:
+            file_name = file_name.replace('Spend data - ', '')
+            csvYr = file_name[-4:]
+            csvMth = file_name[:3]
             csvMth = convert_mth_strings(csvMth.upper())
             data.append([csvYr, csvMth, url])
 
